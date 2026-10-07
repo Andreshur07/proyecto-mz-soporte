@@ -25,6 +25,7 @@ export class AuthService {
   homeForRole(role = this.usuario()?.rol): string {
     if (role === 'SOLICITANTE') return '/mis-solicitudes';
     if (role === 'COORDINADOR') return '/solicitudes';
+    if (role === 'AGENTE') return '/solicitudes-asignadas';
     return '/proximamente';
   }
   logout(redirect = true): void {

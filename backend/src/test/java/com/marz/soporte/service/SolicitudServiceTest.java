@@ -2,19 +2,23 @@ package com.marz.soporte.service;
 
 import com.marz.soporte.audit.HistorialCambio;
 import com.marz.soporte.dto.CrearSolicitudRequest;
+import com.marz.soporte.dto.CambiarPrioridadRequest;
 import com.marz.soporte.entity.CategoriaSolicitud;
 import com.marz.soporte.entity.EstadoSolicitud;
 import com.marz.soporte.entity.Prioridad;
+import com.marz.soporte.entity.Rol;
 import com.marz.soporte.entity.Solicitud;
 import com.marz.soporte.entity.Usuario;
 import com.marz.soporte.exception.RecursoNoEncontradoException;
 import com.marz.soporte.repository.HistorialCambioRepository;
 import com.marz.soporte.repository.SolicitudRepository;
 import com.marz.soporte.repository.UsuarioRepository;
+import com.marz.soporte.repository.ReaperturaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,6 +33,7 @@ class SolicitudServiceTest {
     private UsuarioRepository usuarioRepository;
     private HistorialCambioRepository historialRepository;
     private SolicitudService service;
+    private ReaperturaRepository reaperturaRepository;
     private Usuario solicitante;
 
     @BeforeEach
@@ -36,7 +41,8 @@ class SolicitudServiceTest {
         solicitudRepository = mock(SolicitudRepository.class);
         usuarioRepository = mock(UsuarioRepository.class);
         historialRepository = mock(HistorialCambioRepository.class);
-        service = new SolicitudService(solicitudRepository, usuarioRepository, historialRepository);
+        reaperturaRepository = mock(ReaperturaRepository.class);
+        service = new SolicitudService(solicitudRepository, usuarioRepository, historialRepository, reaperturaRepository);
         solicitante = usuario(1L, "solicitante@marz.local");
     }
 
@@ -81,7 +87,8 @@ class SolicitudServiceTest {
         Solicitud solicitud = solicitud(30L, solicitante, Prioridad.MEDIA);
         when(solicitudRepository.findById(30L)).thenReturn(Optional.of(solicitud));
         when(usuarioRepository.findByCorreoIgnoreCase(coordinador.getCorreo())).thenReturn(Optional.of(coordinador));
-        var result = service.cambiarPrioridad(30L, Prioridad.ALTA, coordinador.getCorreo());
+        var result = service.cambiarPrioridad(30L, new CambiarPrioridadRequest(Prioridad.ALTA,
+                "Impacto crítico", LocalDate.now().plusDays(2)), coordinador.getCorreo());
         ArgumentCaptor<HistorialCambio> captor = ArgumentCaptor.forClass(HistorialCambio.class);
         verify(historialRepository).save(captor.capture());
         HistorialCambio historial = captor.getValue();
@@ -96,12 +103,13 @@ class SolicitudServiceTest {
     @Test
     void priorizarSolicitudInexistenteDevuelveNoEncontrada() {
         when(solicitudRepository.findById(999L)).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> service.cambiarPrioridad(999L, Prioridad.ALTA, "coord@marz.local"))
+        assertThatThrownBy(() -> service.cambiarPrioridad(999L, new CambiarPrioridadRequest(Prioridad.ALTA,
+                "Impacto crítico", LocalDate.now().plusDays(2)), "coord@marz.local"))
                 .isInstanceOf(RecursoNoEncontradoException.class);
     }
 
     private Usuario usuario(Long id, String correo) {
-        Usuario u = new Usuario(); u.setId(id); u.setCorreo(correo); u.setNombre("Usuario"); return u;
+        Usuario u = new Usuario(); u.setId(id); u.setCorreo(correo); u.setNombre("Usuario"); u.setRol(Rol.SOLICITANTE); return u;
     }
     private Solicitud solicitud(Long id, Usuario propietario, Prioridad prioridad) {
         Solicitud s = new Solicitud(); s.setId(id); s.setTitulo("Título"); s.setDescripcion("Descripción");

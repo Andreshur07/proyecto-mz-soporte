@@ -4,8 +4,11 @@ import com.marz.soporte.entity.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
+import java.util.List;
+import com.marz.soporte.entity.Rol;
 
 public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     Optional<Usuario> findByCorreoIgnoreCase(String correo);
     boolean existsByCorreoIgnoreCase(String correo);
+    List<Usuario> findByRolAndActivoTrueOrderByNombreAsc(Rol rol);
 }

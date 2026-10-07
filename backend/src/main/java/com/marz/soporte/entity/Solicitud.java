@@ -14,6 +14,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "solicitudes")
@@ -44,9 +45,18 @@ public class Solicitud {
     @Column(nullable = false, length = 10)
     private Prioridad prioridad;
 
+    @Column(length = 500)
+    private String justificacionPrioridadAlta;
+
+    private LocalDate fechaObjetivo;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "solicitante_id", nullable = false)
     private Usuario solicitante;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "agente_asignado_id")
+    private Usuario agenteAsignado;
 
     @PrePersist
     void asignarValoresIniciales() {
@@ -71,4 +81,10 @@ public class Solicitud {
     public void setPrioridad(Prioridad prioridad) { this.prioridad = prioridad; }
     public Usuario getSolicitante() { return solicitante; }
     public void setSolicitante(Usuario solicitante) { this.solicitante = solicitante; }
+    public String getJustificacionPrioridadAlta() { return justificacionPrioridadAlta; }
+    public void setJustificacionPrioridadAlta(String justificacionPrioridadAlta) { this.justificacionPrioridadAlta = justificacionPrioridadAlta; }
+    public LocalDate getFechaObjetivo() { return fechaObjetivo; }
+    public void setFechaObjetivo(LocalDate fechaObjetivo) { this.fechaObjetivo = fechaObjetivo; }
+    public Usuario getAgenteAsignado() { return agenteAsignado; }
+    public void setAgenteAsignado(Usuario agenteAsignado) { this.agenteAsignado = agenteAsignado; }
 }

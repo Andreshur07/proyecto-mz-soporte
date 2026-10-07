@@ -27,7 +27,10 @@ import { AuthService } from '../core/services/auth.service';
             @if (auth.usuario()?.rol === 'COORDINADOR') {
               <a routerLink="/solicitudes" routerLinkActive="active" (click)="menuOpen.set(false)">▤ <span>Solicitudes</span></a>
             }
-            @if (auth.usuario()?.rol === 'AGENTE' || auth.usuario()?.rol === 'AUDITOR') {
+            @if (auth.usuario()?.rol === 'AGENTE') {
+              <a routerLink="/solicitudes-asignadas" routerLinkActive="active" (click)="menuOpen.set(false)">▤ <span>Mis solicitudes asignadas</span></a>
+            }
+            @if (auth.usuario()?.rol === 'AUDITOR') {
               <a routerLink="/proximamente" routerLinkActive="active" (click)="menuOpen.set(false)">◷ <span>Próximamente</span></a>
             }
           </nav>

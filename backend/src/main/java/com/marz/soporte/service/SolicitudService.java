@@ -1,87 +1,99 @@
 package com.marz.soporte.service;
 
 import com.marz.soporte.audit.HistorialCambio;
-import com.marz.soporte.dto.CrearSolicitudRequest;
-import com.marz.soporte.dto.SolicitudResponse;
-import com.marz.soporte.entity.EstadoSolicitud;
-import com.marz.soporte.entity.Prioridad;
-import com.marz.soporte.entity.Solicitud;
-import com.marz.soporte.entity.Usuario;
+import com.marz.soporte.dto.*;
+import com.marz.soporte.entity.*;
 import com.marz.soporte.exception.RecursoNoEncontradoException;
-import com.marz.soporte.repository.HistorialCambioRepository;
-import com.marz.soporte.repository.SolicitudRepository;
-import com.marz.soporte.repository.UsuarioRepository;
+import com.marz.soporte.exception.ReglaNegocioException;
+import com.marz.soporte.repository.*;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
 public class SolicitudService {
-    private final SolicitudRepository solicitudRepository;
-    private final UsuarioRepository usuarioRepository;
-    private final HistorialCambioRepository historialRepository;
-    public SolicitudService(SolicitudRepository solicitudRepository, UsuarioRepository usuarioRepository,
-                            HistorialCambioRepository historialRepository) {
-        this.solicitudRepository = solicitudRepository;
-        this.usuarioRepository = usuarioRepository;
-        this.historialRepository = historialRepository;
+    private final SolicitudRepository solicitudes;
+    private final UsuarioRepository usuarios;
+    private final HistorialCambioRepository historiales;
+    private final ReaperturaRepository reaperturas;
+    public SolicitudService(SolicitudRepository solicitudes,UsuarioRepository usuarios,
+            HistorialCambioRepository historiales,ReaperturaRepository reaperturas){
+        this.solicitudes=solicitudes;this.usuarios=usuarios;this.historiales=historiales;this.reaperturas=reaperturas;
+    }
+
+    @Transactional
+    public SolicitudResponse crear(CrearSolicitudRequest request,String correo){
+        Usuario propietario=usuario(correo); Solicitud s=new Solicitud();
+        s.setTitulo(request.titulo().trim());s.setDescripcion(request.descripcion().trim());s.setCategoria(request.categoria());
+        s.setEstado(EstadoSolicitud.NUEVO);s.setPrioridad(Prioridad.MEDIA);s.setFechaCreacion(Instant.now());s.setSolicitante(propietario);
+        return respuesta(solicitudes.save(s));
+    }
+    @Transactional(readOnly=true)
+    public List<SolicitudResponse> mias(String correo){Usuario u=usuario(correo);return solicitudes.findBySolicitanteIdOrderByFechaCreacionDesc(u.getId()).stream().map(this::respuesta).toList();}
+    @Transactional(readOnly=true)
+    public List<SolicitudResponse> listar(){return solicitudes.findAllByOrderByFechaCreacionDesc().stream().map(this::respuesta).toList();}
+    @Transactional(readOnly=true)
+    public List<SolicitudResponse> asignadas(String correo){Usuario u=usuario(correo);return solicitudes.findByAgenteAsignadoIdOrderByFechaCreacionDesc(u.getId()).stream().map(this::respuesta).toList();}
+    @Transactional(readOnly=true)
+    public SolicitudResponse detalle(Long id,String correo){
+        Usuario u=usuario(correo);Solicitud s=solicitud(id);
+        if(u.getRol()==Rol.COORDINADOR)return respuesta(s);
+        if(u.getRol()==Rol.SOLICITANTE&&s.getSolicitante().getId().equals(u.getId()))return respuesta(s);
+        if(u.getRol()==Rol.AGENTE&&s.getAgenteAsignado()!=null&&s.getAgenteAsignado().getId().equals(u.getId()))return respuesta(s);
+        if(u.getRol()==Rol.SOLICITANTE)throw new RecursoNoEncontradoException("Solicitud no encontrada");
+        throw new AccessDeniedException("No tiene acceso a esta solicitud");
+    }
+    public SolicitudResponse propia(Long id,String correo){return detalle(id,correo);}
+
+    @Transactional
+    public SolicitudResponse cambiarPrioridad(Long id,CambiarPrioridadRequest request,String correoActor){
+        Solicitud s=solicitud(id);Usuario actor=usuario(correoActor);validarPrioridadAlta(request);
+        Prioridad anterior=s.getPrioridad();s.setPrioridad(request.prioridad());
+        if(request.prioridad()==Prioridad.ALTA){s.setJustificacionPrioridadAlta(request.justificacion().trim());s.setFechaObjetivo(request.fechaObjetivo());}
+        solicitudes.save(s);registrar(s,actor,"prioridad",anterior.name(),request.prioridad().name());return respuesta(s);
+    }
+    private void validarPrioridadAlta(CambiarPrioridadRequest request){
+        if(request.prioridad()!=Prioridad.ALTA)return;
+        if(request.justificacion()==null||request.justificacion().isBlank())throw new ReglaNegocioException("La justificación es obligatoria para prioridad ALTA");
+        if(request.fechaObjetivo()==null)throw new ReglaNegocioException("La fecha objetivo es obligatoria para prioridad ALTA");
+        if(request.fechaObjetivo().isBefore(LocalDate.now()))throw new ReglaNegocioException("La fecha objetivo no puede ser anterior a la fecha actual");
     }
     @Transactional
-    public SolicitudResponse crear(CrearSolicitudRequest request, String correo) {
-        Usuario usuario = usuario(correo);
-        Solicitud solicitud = new Solicitud();
-        solicitud.setTitulo(request.titulo().trim());
-        solicitud.setDescripcion(request.descripcion().trim());
-        solicitud.setCategoria(request.categoria());
-        solicitud.setEstado(EstadoSolicitud.NUEVO);
-        solicitud.setPrioridad(Prioridad.MEDIA);
-        solicitud.setFechaCreacion(Instant.now());
-        solicitud.setSolicitante(usuario);
-        return respuesta(solicitudRepository.save(solicitud));
-    }
-    @Transactional(readOnly = true)
-    public List<SolicitudResponse> mias(String correo) {
-        Usuario usuario = usuario(correo);
-        return solicitudRepository.findBySolicitanteIdOrderByFechaCreacionDesc(usuario.getId())
-                .stream().map(this::respuesta).toList();
-    }
-    @Transactional(readOnly = true)
-    public SolicitudResponse propia(Long id, String correo) {
-        Usuario usuario = usuario(correo);
-        Solicitud solicitud = solicitudRepository.findById(id)
-                .filter(item -> item.getSolicitante().getId().equals(usuario.getId()))
-                .orElseThrow(() -> new RecursoNoEncontradoException("Solicitud no encontrada"));
-        return respuesta(solicitud);
-    }
-    @Transactional(readOnly = true)
-    public List<SolicitudResponse> listar() {
-        return solicitudRepository.findAllByOrderByFechaCreacionDesc().stream().map(this::respuesta).toList();
+    public SolicitudResponse asignar(Long id,Long agenteId,String correoActor){
+        Solicitud s=solicitud(id);Usuario actor=usuario(correoActor);Usuario agente=usuarios.findById(agenteId).orElseThrow(()->new RecursoNoEncontradoException("Usuario no encontrado"));
+        if(agente.getRol()!=Rol.AGENTE)throw new ReglaNegocioException("El usuario seleccionado no tiene rol AGENTE");
+        if(!agente.isActivo())throw new ReglaNegocioException("El agente seleccionado está inactivo");
+        String anterior=s.getAgenteAsignado()==null?"Sin asignar":identidad(s.getAgenteAsignado());s.setAgenteAsignado(agente);solicitudes.save(s);
+        registrar(s,actor,"agenteAsignado",anterior,identidad(agente));return respuesta(s);
     }
     @Transactional
-    public SolicitudResponse cambiarPrioridad(Long id, Prioridad nuevaPrioridad, String correoActor) {
-        Solicitud solicitud = solicitudRepository.findById(id)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Solicitud no encontrada"));
-        Usuario actor = usuario(correoActor);
-        Prioridad anterior = solicitud.getPrioridad();
-        solicitud.setPrioridad(nuevaPrioridad);
-        solicitudRepository.save(solicitud);
-        HistorialCambio historial = new HistorialCambio();
-        historial.setSolicitud(solicitud);
-        historial.setActor(actor);
-        historial.setFecha(Instant.now());
-        historial.setCampo("prioridad");
-        historial.setValorAnterior(anterior.name());
-        historial.setValorNuevo(nuevaPrioridad.name());
-        historialRepository.save(historial);
-        return respuesta(solicitud);
+    public SolicitudResponse cambiarEstado(Long id,EstadoSolicitud nuevo,String correoAgente){
+        Solicitud s=solicitud(id);Usuario agente=usuario(correoAgente);validarAgenteAsignado(s,agente);
+        EstadoSolicitud anterior=s.getEstado();boolean valida=(anterior==EstadoSolicitud.NUEVO||anterior==EstadoSolicitud.REABIERTO)&&nuevo==EstadoSolicitud.EN_PROCESO
+                ||anterior==EstadoSolicitud.EN_PROCESO&&nuevo==EstadoSolicitud.RESUELTO;
+        if(!valida)throw new ReglaNegocioException("Transición de estado no permitida: "+anterior+" -> "+nuevo);
+        s.setEstado(nuevo);solicitudes.save(s);registrar(s,agente,"estado",anterior.name(),nuevo.name());return respuesta(s);
     }
-    private Usuario usuario(String correo) {
-        return usuarioRepository.findByCorreoIgnoreCase(correo)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
+    @Transactional
+    public SolicitudResponse confirmarCierre(Long id,String correo){
+        Solicitud s=solicitudPropia(id,correo);if(s.getEstado()!=EstadoSolicitud.RESUELTO)throw new ReglaNegocioException("Solo se puede cerrar una solicitud RESUELTA");
+        Usuario actor=usuario(correo);s.setEstado(EstadoSolicitud.CERRADO);solicitudes.save(s);registrar(s,actor,"estado","RESUELTO","CERRADO");return respuesta(s);
     }
-    private SolicitudResponse respuesta(Solicitud solicitud) {
-        return new SolicitudResponse(solicitud.getId(), solicitud.getTitulo(), solicitud.getDescripcion(),
-                solicitud.getCategoria(), solicitud.getFechaCreacion(), solicitud.getEstado(), solicitud.getPrioridad());
+    @Transactional
+    public SolicitudResponse reabrir(Long id,String motivo,String correo){
+        Solicitud s=solicitudPropia(id,correo);if(s.getEstado()!=EstadoSolicitud.RESUELTO)throw new ReglaNegocioException("Solo se puede reabrir una solicitud RESUELTA");
+        Usuario actor=usuario(correo);Reapertura r=new Reapertura();r.setSolicitud(s);r.setSolicitante(actor);r.setMotivo(motivo.trim());r.setFechaCreacion(Instant.now());
+        s.setEstado(EstadoSolicitud.REABIERTO);reaperturas.save(r);solicitudes.save(s);registrar(s,actor,"estado","RESUELTO","REABIERTO");return respuesta(s);
     }
+    private Solicitud solicitudPropia(Long id,String correo){Usuario u=usuario(correo);return solicitudes.findById(id).filter(s->s.getSolicitante().getId().equals(u.getId())).orElseThrow(()->new RecursoNoEncontradoException("Solicitud no encontrada"));}
+    private void validarAgenteAsignado(Solicitud s,Usuario agente){if(s.getAgenteAsignado()==null||!s.getAgenteAsignado().getId().equals(agente.getId()))throw new AccessDeniedException("Solo el agente asignado puede realizar esta operación");}
+    private Solicitud solicitud(Long id){return solicitudes.findById(id).orElseThrow(()->new RecursoNoEncontradoException("Solicitud no encontrada"));}
+    private Usuario usuario(String correo){return usuarios.findByCorreoIgnoreCase(correo).orElseThrow(()->new RecursoNoEncontradoException("Usuario no encontrado"));}
+    private void registrar(Solicitud s,Usuario actor,String campo,String anterior,String nuevo){HistorialCambio h=new HistorialCambio();h.setSolicitud(s);h.setActor(actor);h.setFecha(Instant.now());h.setCampo(campo);h.setValorAnterior(anterior);h.setValorNuevo(nuevo);historiales.save(h);}
+    private String identidad(Usuario u){return u.getId()+" - "+u.getCorreo();}
+    private UsuarioResumenResponse usuarioResumen(Usuario u){return u==null?null:new UsuarioResumenResponse(u.getId(),u.getNombre(),u.getCorreo(),u.getRol());}
+    private SolicitudResponse respuesta(Solicitud s){return new SolicitudResponse(s.getId(),s.getTitulo(),s.getDescripcion(),s.getCategoria(),s.getFechaCreacion(),s.getEstado(),s.getPrioridad(),s.getJustificacionPrioridadAlta(),s.getFechaObjetivo(),usuarioResumen(s.getSolicitante()),usuarioResumen(s.getAgenteAsignado()));}
 }

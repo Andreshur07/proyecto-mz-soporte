@@ -8,6 +8,7 @@ import { MisSolicitudesComponent } from './pages/mis-solicitudes/mis-solicitudes
 import { CrearSolicitudComponent } from './pages/crear-solicitud/crear-solicitud.component';
 import { DetalleSolicitudComponent } from './pages/detalle-solicitud/detalle-solicitud.component';
 import { SolicitudesCoordinadorComponent } from './pages/solicitudes-coordinador/solicitudes-coordinador.component';
+import { SolicitudesAsignadasComponent } from './pages/solicitudes-asignadas/solicitudes-asignadas.component';
 import { MessagePageComponent } from './pages/message-page/message-page.component';
 
 export const routes: Routes = [
@@ -15,9 +16,10 @@ export const routes: Routes = [
  {path:'',component:LayoutComponent,canActivate:[authGuard],children:[
   {path:'mis-solicitudes',component:MisSolicitudesComponent,canActivate:[roleGuard],data:{roles:['SOLICITANTE']}},
   {path:'solicitudes/nueva',component:CrearSolicitudComponent,canActivate:[roleGuard],data:{roles:['SOLICITANTE']}},
-  {path:'solicitudes/:id',component:DetalleSolicitudComponent,canActivate:[roleGuard],data:{roles:['SOLICITANTE']}},
+  {path:'solicitudes/:id',component:DetalleSolicitudComponent,canActivate:[roleGuard],data:{roles:['SOLICITANTE','AGENTE','COORDINADOR']}},
   {path:'solicitudes',component:SolicitudesCoordinadorComponent,canActivate:[roleGuard],data:{roles:['COORDINADOR']}},
-  {path:'proximamente',component:MessagePageComponent,canActivate:[roleGuard],data:{roles:['AGENTE','AUDITOR']}},
+  {path:'solicitudes-asignadas',component:SolicitudesAsignadasComponent,canActivate:[roleGuard],data:{roles:['AGENTE']}},
+  {path:'proximamente',component:MessagePageComponent,canActivate:[roleGuard],data:{roles:['AUDITOR']}},
   {path:'sin-acceso',component:MessagePageComponent},
   {path:'',pathMatch:'full',component:MessagePageComponent,canActivate:[homeGuard]}
  ]},

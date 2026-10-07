@@ -1,0 +1,11 @@
+import { Component, OnInit, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
+import { Solicitud } from '../../core/models/solicitud.model';
+import { SolicitudesService } from '../../core/services/solicitudes.service';
+import { StatusBadgeComponent } from '../../shared/status-badge.component';
+
+@Component({selector:'app-solicitudes-asignadas',imports:[DatePipe,RouterLink,StatusBadgeComponent],template:`
+<div class="page-head"><div><p class="eyebrow">OPERACIÓN</p><h1>Mis solicitudes asignadas</h1><p>Gestiona las solicitudes que requieren tu atención.</p></div></div>
+@if(loading()){<div class="state-card"><span class="spinner"></span><h2>Cargando solicitudes</h2></div>}@else if(error()){<div class="state-card"><span class="state-icon">!</span><h2>No pudimos cargar tus solicitudes</h2><button class="button secondary" (click)="load()">Reintentar</button></div>}@else if(!items().length){<div class="state-card"><span class="state-icon">✓</span><h2>No tienes solicitudes asignadas</h2></div>}@else{<section class="card table-card"><div class="table-summary"><strong>{{items().length}} asignadas</strong></div><div class="table-wrap"><table><thead><tr><th>ID</th><th>Título</th><th>Categoría</th><th>Fecha</th><th>Estado</th><th>Prioridad</th><th></th></tr></thead><tbody>@for(s of items();track s.id){<tr><td class="id">#{{s.id}}</td><td><strong>{{s.titulo}}</strong></td><td>{{label(s.categoria)}}</td><td>{{s.fechaCreacion|date:'dd MMM yyyy'}}</td><td><app-status-badge [value]="s.estado"/></td><td><app-status-badge [value]="s.prioridad"/></td><td><a class="text-link" [routerLink]="['/solicitudes',s.id]">Ver detalle →</a></td></tr>}</tbody></table></div></section>}`})
+export class SolicitudesAsignadasComponent implements OnInit{readonly items=signal<Solicitud[]>([]);readonly loading=signal(true);readonly error=signal(false);constructor(private api:SolicitudesService){}ngOnInit(){this.load();}load(){this.loading.set(true);this.error.set(false);this.api.asignadas().subscribe({next:x=>{this.items.set(x);this.loading.set(false);},error:()=>{this.error.set(true);this.loading.set(false);}});}label(v:string){return v.charAt(0)+v.slice(1).toLowerCase();}}

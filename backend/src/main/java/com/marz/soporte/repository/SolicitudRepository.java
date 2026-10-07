@@ -8,4 +8,5 @@ import java.util.List;
 public interface SolicitudRepository extends JpaRepository<Solicitud, Long> {
     List<Solicitud> findBySolicitanteIdOrderByFechaCreacionDesc(Long solicitanteId);
     List<Solicitud> findAllByOrderByFechaCreacionDesc();
+    List<Solicitud> findByAgenteAsignadoIdOrderByFechaCreacionDesc(Long agenteId);
 }

@@ -27,6 +27,10 @@ public class GlobalExceptionHandler {
     ResponseEntity<ApiError> notFound(RecursoNoEncontradoException exception, HttpServletRequest request) {
         return response(HttpStatus.NOT_FOUND, exception.getMessage(), request);
     }
+    @ExceptionHandler(ReglaNegocioException.class)
+    ResponseEntity<ApiError> businessRule(ReglaNegocioException exception, HttpServletRequest request) {
+        return response(HttpStatus.BAD_REQUEST, exception.getMessage(), request);
+    }
     @ExceptionHandler(CredencialesInvalidasException.class)
     ResponseEntity<ApiError> unauthorized(CredencialesInvalidasException exception, HttpServletRequest request) {
         return response(HttpStatus.UNAUTHORIZED, exception.getMessage(), request);

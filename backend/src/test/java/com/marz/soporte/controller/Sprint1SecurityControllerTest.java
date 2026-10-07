@@ -2,6 +2,7 @@ package com.marz.soporte.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.marz.soporte.dto.LoginResponse;
+import com.marz.soporte.dto.CambiarPrioridadRequest;
 import com.marz.soporte.dto.SolicitudResponse;
 import com.marz.soporte.dto.UsuarioResponse;
 import com.marz.soporte.entity.CategoriaSolicitud;
@@ -133,7 +134,7 @@ class Sprint1SecurityControllerTest {
     @Test
     @WithMockUser(username = "solicitante@marz.local", roles = "SOLICITANTE")
     void accesoASolicitudAjenaSeRechazaComo404() throws Exception {
-        when(solicitudService.propia(99L, "solicitante@marz.local"))
+        when(solicitudService.detalle(99L, "solicitante@marz.local"))
                 .thenThrow(new RecursoNoEncontradoException("Solicitud no encontrada"));
         mockMvc.perform(get("/api/solicitudes/99")).andExpect(status().isNotFound());
     }
@@ -149,10 +150,10 @@ class Sprint1SecurityControllerTest {
     @Test
     @WithMockUser(username = "coordinador@marz.local", roles = "COORDINADOR")
     void coordinadorCambiaPrioridad() throws Exception {
-        when(solicitudService.cambiarPrioridad(10L, Prioridad.ALTA, "coordinador@marz.local"))
+        when(solicitudService.cambiarPrioridad(eq(10L), any(CambiarPrioridadRequest.class), eq("coordinador@marz.local")))
                 .thenReturn(respuesta(10L, Prioridad.ALTA));
         mockMvc.perform(patch("/api/solicitudes/10/prioridad").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"prioridad\":\"ALTA\"}"))
+                        .content("{\"prioridad\":\"ALTA\",\"justificacion\":\"Impacto crítico\",\"fechaObjetivo\":\"2099-12-31\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.prioridad").value("ALTA"));
     }
 
@@ -169,10 +170,10 @@ class Sprint1SecurityControllerTest {
     @Test
     @WithMockUser(username = "coordinador@marz.local", roles = "COORDINADOR")
     void priorizarSolicitudInexistenteDevuelve404() throws Exception {
-        when(solicitudService.cambiarPrioridad(999L, Prioridad.ALTA, "coordinador@marz.local"))
+        when(solicitudService.cambiarPrioridad(eq(999L), any(CambiarPrioridadRequest.class), eq("coordinador@marz.local")))
                 .thenThrow(new RecursoNoEncontradoException("Solicitud no encontrada"));
         mockMvc.perform(patch("/api/solicitudes/999/prioridad").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"prioridad\":\"ALTA\"}"))
+                        .content("{\"prioridad\":\"ALTA\",\"justificacion\":\"Impacto crítico\",\"fechaObjetivo\":\"2099-12-31\"}"))
                 .andExpect(status().isNotFound());
     }
 
