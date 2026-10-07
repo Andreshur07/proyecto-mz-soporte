@@ -20,3 +20,7 @@ export interface Comentario {
   autor: { id: number; nombre: string; rol?: Rol };
 }
 export interface CrearComentario { contenido: string; }
+export interface FiltroSolicitud {
+  estado?: Estado; prioridad?: Prioridad; categoria?: Categoria; agenteId?: number;
+  fechaDesde?: string; fechaHasta?: string;
+}

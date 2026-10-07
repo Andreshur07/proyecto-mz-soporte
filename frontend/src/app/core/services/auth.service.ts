@@ -26,7 +26,7 @@ export class AuthService {
     if (role === 'SOLICITANTE') return '/mis-solicitudes';
     if (role === 'COORDINADOR') return '/solicitudes';
     if (role === 'AGENTE') return '/solicitudes-asignadas';
-    return '/proximamente';
+    return '/auditoria';
   }
   logout(redirect = true): void {
     localStorage.removeItem(SESSION_KEY);

@@ -12,7 +12,7 @@ import { StatusBadgeComponent } from '../../shared/status-badge.component';
 import { FeedbackComponent } from '../../shared/feedback.component';
 
 @Component({selector:'app-detalle-solicitud',imports:[DatePipe,FormsModule,RouterLink,StatusBadgeComponent,FeedbackComponent],template:`
-  <div class="page-head"><div><p class="eyebrow">{{role()==='AGENTE'?'OPERACIÓN':role()==='COORDINADOR'?'COORDINACIÓN':'MIS SOLICITUDES'}}</p><h1>Detalle de solicitud</h1><p>Información y seguimiento del caso.</p></div><a class="button secondary" [routerLink]="backLink()">← Volver al listado</a></div>
+  <div class="page-head"><div><p class="eyebrow">{{role()==='AGENTE'?'OPERACIÓN':role()==='COORDINADOR'?'COORDINACIÓN':role()==='AUDITOR'?'AUDITORÍA':'MIS SOLICITUDES'}}</p><h1>Detalle de solicitud</h1><p>Información y seguimiento del caso.</p></div><a class="button secondary" [routerLink]="backLink()">← Volver al listado</a></div>
   @if(message()){<app-feedback [type]="messageType()" [message]="message()"/>}
   @if(loading()){<div class="state-card"><span class="spinner"></span><h2>Cargando detalle</h2></div>}
   @else if(notFound()){<div class="state-card"><span class="state-icon">?</span><h2>Solicitud no encontrada</h2><p>No existe o no tienes permiso para consultarla.</p><a class="button primary" [routerLink]="backLink()">Volver</a></div>}
@@ -38,7 +38,7 @@ export class DetalleSolicitudComponent implements OnInit{
  readonly canResolveAsRequester=computed(()=>this.role()==='SOLICITANTE'&&this.item()?.estado==='RESUELTO');
  constructor(private route:ActivatedRoute,private api:SolicitudesService,private commentsApi:ComentariosService,private auth:AuthService){}
  ngOnInit(){this.id=Number(this.route.snapshot.paramMap.get('id'));if(!Number.isInteger(this.id)||this.id<1){this.notFound.set(true);this.loading.set(false);return;}forkJoin({item:this.api.detalle(this.id),comments:this.commentsApi.listar(this.id)}).subscribe({next:r=>{this.item.set(r.item);this.comments.set(r.comments);this.loading.set(false);},error:e=>{e.status===404||e.status===403?this.notFound.set(true):this.error.set(true);this.loading.set(false);}});}
- backLink(){return this.role()==='AGENTE'?'/solicitudes-asignadas':this.role()==='COORDINADOR'?'/solicitudes':'/mis-solicitudes';}
+ backLink(){return this.role()==='AGENTE'?'/solicitudes-asignadas':this.role()==='COORDINADOR'?'/solicitudes':this.role()==='AUDITOR'?'/auditoria':'/mis-solicitudes';}
  changeState(estado:Estado){if(this.actionBusy())return;this.actionBusy.set(true);this.api.cambiarEstado(this.id,{estado}).pipe(finalize(()=>this.actionBusy.set(false))).subscribe({next:x=>{this.item.set(x);this.success(`El estado cambió a ${estado}.`);},error:e=>this.fail(e,'No se pudo cambiar el estado.')});}
  close(){if(this.actionBusy())return;this.actionBusy.set(true);this.api.confirmarCierre(this.id).pipe(finalize(()=>this.actionBusy.set(false))).subscribe({next:x=>{this.item.set(x);this.success('La solicitud se cerró correctamente.');},error:e=>this.fail(e,'No se pudo confirmar el cierre.')});}
  reopen(){this.reopenSubmitted.set(true);if(this.actionBusy()||!this.reopenReason.trim()||this.reopenReason.length>1000)return;this.actionBusy.set(true);this.api.reabrir(this.id,{motivo:this.reopenReason.trim()}).pipe(finalize(()=>this.actionBusy.set(false))).subscribe({next:x=>{this.item.set(x);this.showReopen.set(false);this.reopenReason='';this.success('La solicitud fue reabierta.');},error:e=>this.fail(e,'No se pudo reabrir la solicitud.')});}

@@ -13,6 +13,6 @@ class Sprint2SecurityControllerTest{
  @Test @WithMockUser(username="sol@x",roles="SOLICITANTE") void reaperturaSinMotivoDevuelve400()throws Exception{mvc.perform(patch("/api/solicitudes/1/reabrir").contentType(MediaType.APPLICATION_JSON).content("{\"motivo\":\"\"}")).andExpect(status().isBadRequest());}
  @Test @WithMockUser(roles="AGENTE") void agenteNoConfirmaCierre()throws Exception{mvc.perform(patch("/api/solicitudes/1/confirmar-cierre")).andExpect(status().isForbidden());}
  @Test @WithMockUser(roles="COORDINADOR") void listaSoloAgentesActivos()throws Exception{when(usuarios.agentesActivos()).thenReturn(List.of(new UsuarioResumenResponse(2L,"Agente","a@x",Rol.AGENTE)));mvc.perform(get("/api/usuarios/agentes")).andExpect(status().isOk()).andExpect(jsonPath("$[0].correo").value("a@x")).andExpect(jsonPath("$[0].password").doesNotExist());}
- @Test @WithMockUser(roles="AUDITOR") void auditorNoAccedeADetalle()throws Exception{mvc.perform(get("/api/solicitudes/1")).andExpect(status().isForbidden());}
+ @Test @WithMockUser(username="auditor@x",roles="AUDITOR") void auditorAccedeADetalleSoloLectura()throws Exception{when(solicitudes.detalle(1L,"auditor@x")).thenReturn(respuesta());mvc.perform(get("/api/solicitudes/1")).andExpect(status().isOk());}
  private SolicitudResponse respuesta(){return new SolicitudResponse(1L,"T","D",CategoriaSolicitud.SOFTWARE,Instant.now(),EstadoSolicitud.NUEVO,Prioridad.MEDIA);}
 }

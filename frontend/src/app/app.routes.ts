@@ -10,16 +10,19 @@ import { DetalleSolicitudComponent } from './pages/detalle-solicitud/detalle-sol
 import { SolicitudesCoordinadorComponent } from './pages/solicitudes-coordinador/solicitudes-coordinador.component';
 import { SolicitudesAsignadasComponent } from './pages/solicitudes-asignadas/solicitudes-asignadas.component';
 import { MessagePageComponent } from './pages/message-page/message-page.component';
+import { IndicadoresComponent } from './pages/indicadores/indicadores.component';
+import { AuditoriaComponent } from './pages/auditoria/auditoria.component';
 
 export const routes: Routes = [
  {path:'login',component:LoginComponent},
  {path:'',component:LayoutComponent,canActivate:[authGuard],children:[
   {path:'mis-solicitudes',component:MisSolicitudesComponent,canActivate:[roleGuard],data:{roles:['SOLICITANTE']}},
   {path:'solicitudes/nueva',component:CrearSolicitudComponent,canActivate:[roleGuard],data:{roles:['SOLICITANTE']}},
-  {path:'solicitudes/:id',component:DetalleSolicitudComponent,canActivate:[roleGuard],data:{roles:['SOLICITANTE','AGENTE','COORDINADOR']}},
+  {path:'solicitudes/:id',component:DetalleSolicitudComponent,canActivate:[roleGuard],data:{roles:['SOLICITANTE','AGENTE','COORDINADOR','AUDITOR']}},
   {path:'solicitudes',component:SolicitudesCoordinadorComponent,canActivate:[roleGuard],data:{roles:['COORDINADOR']}},
+  {path:'indicadores',component:IndicadoresComponent,canActivate:[roleGuard],data:{roles:['COORDINADOR']}},
   {path:'solicitudes-asignadas',component:SolicitudesAsignadasComponent,canActivate:[roleGuard],data:{roles:['AGENTE']}},
-  {path:'proximamente',component:MessagePageComponent,canActivate:[roleGuard],data:{roles:['AUDITOR']}},
+  {path:'auditoria',component:AuditoriaComponent,canActivate:[roleGuard],data:{roles:['AUDITOR']}},
   {path:'sin-acceso',component:MessagePageComponent},
   {path:'',pathMatch:'full',component:MessagePageComponent,canActivate:[homeGuard]}
  ]},

@@ -9,6 +9,8 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import java.time.Instant;
 
 @RestControllerAdvice
@@ -22,6 +24,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     ResponseEntity<ApiError> unreadable(HttpMessageNotReadableException exception, HttpServletRequest request) {
         return response(HttpStatus.BAD_REQUEST, "El cuerpo contiene valores inválidos", request);
+    }
+    @ExceptionHandler({MethodArgumentTypeMismatchException.class, MissingServletRequestParameterException.class})
+    ResponseEntity<ApiError> invalidParameter(Exception exception, HttpServletRequest request) {
+        return response(HttpStatus.BAD_REQUEST, "Los parámetros de la solicitud contienen valores inválidos", request);
     }
     @ExceptionHandler(RecursoNoEncontradoException.class)
     ResponseEntity<ApiError> notFound(RecursoNoEncontradoException exception, HttpServletRequest request) {

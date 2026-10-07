@@ -7,6 +7,7 @@ import com.marz.soporte.exception.RecursoNoEncontradoException;
 import com.marz.soporte.exception.ReglaNegocioException;
 import com.marz.soporte.repository.*;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
@@ -36,11 +37,20 @@ public class SolicitudService {
     @Transactional(readOnly=true)
     public List<SolicitudResponse> listar(){return solicitudes.findAllByOrderByFechaCreacionDesc().stream().map(this::respuesta).toList();}
     @Transactional(readOnly=true)
+    public List<SolicitudResponse> listar(FiltroSolicitud filtro){
+        return buscar(filtro).stream().map(this::respuesta).toList();
+    }
+    @Transactional(readOnly=true)
+    public List<Solicitud> buscar(FiltroSolicitud filtro){
+        validarAgente(filtro.agenteId());
+        return solicitudes.findAll(SolicitudSpecification.conFiltros(filtro), Sort.by(Sort.Direction.DESC,"fechaCreacion"));
+    }
+    @Transactional(readOnly=true)
     public List<SolicitudResponse> asignadas(String correo){Usuario u=usuario(correo);return solicitudes.findByAgenteAsignadoIdOrderByFechaCreacionDesc(u.getId()).stream().map(this::respuesta).toList();}
     @Transactional(readOnly=true)
     public SolicitudResponse detalle(Long id,String correo){
         Usuario u=usuario(correo);Solicitud s=solicitud(id);
-        if(u.getRol()==Rol.COORDINADOR)return respuesta(s);
+        if(u.getRol()==Rol.COORDINADOR||u.getRol()==Rol.AUDITOR)return respuesta(s);
         if(u.getRol()==Rol.SOLICITANTE&&s.getSolicitante().getId().equals(u.getId()))return respuesta(s);
         if(u.getRol()==Rol.AGENTE&&s.getAgenteAsignado()!=null&&s.getAgenteAsignado().getId().equals(u.getId()))return respuesta(s);
         if(u.getRol()==Rol.SOLICITANTE)throw new RecursoNoEncontradoException("Solicitud no encontrada");
@@ -91,6 +101,11 @@ public class SolicitudService {
     private Solicitud solicitudPropia(Long id,String correo){Usuario u=usuario(correo);return solicitudes.findById(id).filter(s->s.getSolicitante().getId().equals(u.getId())).orElseThrow(()->new RecursoNoEncontradoException("Solicitud no encontrada"));}
     private void validarAgenteAsignado(Solicitud s,Usuario agente){if(s.getAgenteAsignado()==null||!s.getAgenteAsignado().getId().equals(agente.getId()))throw new AccessDeniedException("Solo el agente asignado puede realizar esta operación");}
     private Solicitud solicitud(Long id){return solicitudes.findById(id).orElseThrow(()->new RecursoNoEncontradoException("Solicitud no encontrada"));}
+    private void validarAgente(Long agenteId){
+        if(agenteId==null)return;
+        Usuario agente=usuarios.findById(agenteId).orElseThrow(()->new RecursoNoEncontradoException("Agente no encontrado"));
+        if(agente.getRol()!=Rol.AGENTE)throw new ReglaNegocioException("El identificador no corresponde a un agente");
+    }
     private Usuario usuario(String correo){return usuarios.findByCorreoIgnoreCase(correo).orElseThrow(()->new RecursoNoEncontradoException("Usuario no encontrado"));}
     private void registrar(Solicitud s,Usuario actor,String campo,String anterior,String nuevo){HistorialCambio h=new HistorialCambio();h.setSolicitud(s);h.setActor(actor);h.setFecha(Instant.now());h.setCampo(campo);h.setValorAnterior(anterior);h.setValorNuevo(nuevo);historiales.save(h);}
     private String identidad(Usuario u){return u.getId()+" - "+u.getCorreo();}

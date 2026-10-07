@@ -25,13 +25,14 @@ import { AuthService } from '../core/services/auth.service';
               <a routerLink="/solicitudes/nueva" routerLinkActive="active" (click)="menuOpen.set(false)">＋ <span>Nueva solicitud</span></a>
             }
             @if (auth.usuario()?.rol === 'COORDINADOR') {
-              <a routerLink="/solicitudes" routerLinkActive="active" (click)="menuOpen.set(false)">▤ <span>Solicitudes</span></a>
+              <a routerLink="/solicitudes" routerLinkActive="active" (click)="menuOpen.set(false)">▤ <span>Gestión de solicitudes</span></a>
+              <a routerLink="/indicadores" routerLinkActive="active" (click)="menuOpen.set(false)">▦ <span>Indicadores</span></a>
             }
             @if (auth.usuario()?.rol === 'AGENTE') {
               <a routerLink="/solicitudes-asignadas" routerLinkActive="active" (click)="menuOpen.set(false)">▤ <span>Mis solicitudes asignadas</span></a>
             }
             @if (auth.usuario()?.rol === 'AUDITOR') {
-              <a routerLink="/proximamente" routerLinkActive="active" (click)="menuOpen.set(false)">◷ <span>Próximamente</span></a>
+              <a routerLink="/auditoria" routerLinkActive="active" (click)="menuOpen.set(false)">◷ <span>Auditoría</span></a>
             }
           </nav>
         </aside>

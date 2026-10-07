@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { API_URL } from '../config/api.config';
-import { AsignacionSolicitud, CambioEstado, CambioPrioridad, CrearSolicitud, ReaperturaSolicitud, Solicitud, UsuarioResumen } from '../models/solicitud.model';
+import { AsignacionSolicitud, CambioEstado, CambioPrioridad, CrearSolicitud, FiltroSolicitud, ReaperturaSolicitud, Solicitud, UsuarioResumen } from '../models/solicitud.model';
 
 @Injectable({ providedIn: 'root' })
 export class SolicitudesService {
@@ -11,11 +11,17 @@ export class SolicitudesService {
   mias(): Observable<Solicitud[]> { return this.http.get<Solicitud[]>(`${API_URL}/api/solicitudes/mias`); }
   asignadas(): Observable<Solicitud[]> { return this.http.get<Solicitud[]>(`${API_URL}/api/solicitudes/asignadas`); }
   detalle(id: number): Observable<Solicitud> { return this.http.get<Solicitud>(`${API_URL}/api/solicitudes/${id}`); }
-  todas(): Observable<Solicitud[]> { return this.http.get<Solicitud[]>(`${API_URL}/api/solicitudes`); }
+  todas(filtros: FiltroSolicitud = {}): Observable<Solicitud[]> { return this.http.get<Solicitud[]>(`${API_URL}/api/solicitudes`, {params:this.params(filtros)}); }
+  exportar(filtros: FiltroSolicitud = {}): Observable<HttpResponse<Blob>> { return this.http.get(`${API_URL}/api/solicitudes/exportar`, {params:this.params(filtros),responseType:'blob',observe:'response'}); }
   agentes(): Observable<UsuarioResumen[]> { return this.http.get<UsuarioResumen[]>(`${API_URL}/api/usuarios/agentes`); }
   cambiarPrioridad(id: number, data: CambioPrioridad): Observable<Solicitud> { return this.http.patch<Solicitud>(`${API_URL}/api/solicitudes/${id}/prioridad`, data); }
   asignar(id: number, data: AsignacionSolicitud): Observable<Solicitud> { return this.http.patch<Solicitud>(`${API_URL}/api/solicitudes/${id}/asignacion`, data); }
   cambiarEstado(id: number, data: CambioEstado): Observable<Solicitud> { return this.http.patch<Solicitud>(`${API_URL}/api/solicitudes/${id}/estado`, data); }
   confirmarCierre(id: number): Observable<Solicitud> { return this.http.patch<Solicitud>(`${API_URL}/api/solicitudes/${id}/confirmar-cierre`, {}); }
   reabrir(id: number, data: ReaperturaSolicitud): Observable<Solicitud> { return this.http.patch<Solicitud>(`${API_URL}/api/solicitudes/${id}/reabrir`, data); }
+  private params(filtros: FiltroSolicitud): HttpParams {
+    let params=new HttpParams();
+    for(const [key,value] of Object.entries(filtros)) if(value!==undefined&&value!==null&&value!=='') params=params.set(key,String(value));
+    return params;
+  }
 }
